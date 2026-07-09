@@ -1,85 +1,137 @@
-# diseno_pilares_poo.py
-# Semana 3 - Pilares de POO: Encapsulamiento + Herencia + Polimorfismo
-# Refactor robusto de transaccion_poo_v1.py (Semana 3).
-# Cada linea de transacciones.txt tiene:  ID, TIPO, MONTO
-# Para ejecutar:  python diseno_pilares_poo.py
-
-
-# 1) CLASE BASE (PADRE): datos comunes + ENCAPSULAMIENTO del monto
+# # robustez_try_except.py
+# Actividad Semana 4 - Implementacion de recuperacion try-except
+# Objetivo: leer transacciones_corruptas.txt sin que un dato malo detenga el programa.
+# Cada linea valida tiene:  ID, TIPO, MONTO
+# Para ejecutar:  python robustez_try_except.py
+ 
+ 
+# ---------------------------------------------------------------
+# 1) CLASE BASE: encapsulamiento del monto (igual que semana 3)
+# ---------------------------------------------------------------
+ 
 class TransaccionBase:
-    """Clase base: encapsula el monto y define el comportamiento comun."""
-
+    """Clase base que encapsula el monto y define el comportamiento comun."""
+ 
     def __init__(self, id_transaccion, monto):
         self.id_transaccion = id_transaccion
-        self.monto = monto                 # usa el SETTER (valida el dato)
-
-    # GETTER: puente de lectura seguro al atributo privado _monto
+        self.monto = monto  # usa el setter para validar
+ 
+    # GETTER: permite leer el monto de forma segura
     @property
     def monto(self):
         return self._monto
-
-    # SETTER: valida antes de guardar (aqui blindamos el dato)
+ 
+    # SETTER: valida que el monto no sea negativo antes de guardarlo
     @monto.setter
     def monto(self, nuevo_monto):
         if int(nuevo_monto) < 0:
             raise ValueError("El monto no puede ser negativo.")
         self._monto = int(nuevo_monto)
-
-    # Metodo "placeholder": cada hija lo sobreescribe (POLIMORFISMO)
+ 
     def calcular_impacto(self):
         raise NotImplementedError("Cada tipo de transaccion define su impacto.")
-
+ 
     def obtener_informacion(self):
         return f"{self.id_transaccion} | {type(self).__name__} | ${self.monto}"
-
-
-# 2) CLASES HIJAS (HERENCIA): reutilizan al padre y agregan lo suyo
+ 
+ 
+# ---------------------------------------------------------------
+# 2) CLASES HIJAS: herencia + polimorfismo
+# ---------------------------------------------------------------
+ 
 class TransaccionCredito(TransaccionBase):
-    def calcular_impacto(self):             # POLIMORFISMO
-        return round(self.monto * 0.02, 2)  # tasa de interes 2%
-
-
+    """Credito: impacto = 2% del monto (tasa de interes)."""
+ 
+    def calcular_impacto(self):
+        return round(self.monto * 0.02, 2)
+ 
+ 
 class TransaccionDebito(TransaccionBase):
-    def calcular_impacto(self):             # POLIMORFISMO
-        return 1500                        # comision fija
-
-
-# 3) Crear el objeto correcto segun el TIPO (abierto a extension - OCP)
+    """Debito: impacto = comision fija de $1500."""
+ 
+    def calcular_impacto(self):
+        return 1500
+ 
+ 
+# ---------------------------------------------------------------
+# 3) CREAR EL OBJETO CORRECTO SEGUN EL TIPO
+# ---------------------------------------------------------------
+ 
 def crear_transaccion(id_transaccion, tipo, monto):
+    """Crea y devuelve el objeto de transaccion segun el tipo recibido."""
     if tipo == "CREDITO":
         return TransaccionCredito(id_transaccion, monto)
     if tipo == "DEBITO":
         return TransaccionDebito(id_transaccion, monto)
     raise ValueError(f"tipo desconocido '{tipo}'")
-
-
-# 4) Leer el archivo con ROBUSTEZ (try/except): un dato malo no detiene todo
+ 
+ 
+# ---------------------------------------------------------------
+# 4) LECTURA ROBUSTA CON try-except
+#    Este es el unico punto donde vive el bloque try-except.
+#    Si un registro falla, se registra el error y el bucle
+#    continua con el siguiente registro sin detenerse.
+# ---------------------------------------------------------------
+ 
 def leer_transacciones(nombre_archivo):
+    """Lee el archivo linea por linea y devuelve solo las transacciones validas.
+ 
+    Errores atrapados:
+    - ValueError: monto con texto invalido o monto negativo.
+    - TypeError: linea con datos insuficientes (menos de 3 columnas).
+    """
     transacciones = []
+ 
     with open(nombre_archivo, "r", encoding="utf-8") as archivo:
-        for linea in archivo:
+        for numero_linea, linea in enumerate(archivo, start=1):
+ 
+            # Ignorar lineas en blanco
             if not linea.strip():
-                continue  # ignora lineas en blanco (por ejemplo el salto final del archivo)
-            id_transaccion, tipo, monto = linea.strip().split(",")
+                continue
+ 
             try:
-                transacciones.append(crear_transaccion(id_transaccion, tipo, monto))
+                # PASO 1: separar los campos de la linea
+                # Si la linea tiene menos de 3 columnas, el desempaquetado
+                # lanzara un ValueError (no un TypeError como podria esperarse)
+                partes = linea.strip().split(",")
+                id_transaccion, tipo, monto = partes  # puede fallar aqui
+ 
+                # PASO 2: crear el objeto (puede fallar si monto es texto o negativo)
+                transaccion = crear_transaccion(id_transaccion.strip(),
+                                                tipo.strip(),
+                                                monto.strip())
+                transacciones.append(transaccion)
+ 
             except ValueError as error:
-                print(f"  [Aviso] Se ignoro {id_transaccion}: {error}")
+                # Atrapa: conversion fallida (texto_invalido -> int)
+                #         monto negativo (raise ValueError del Setter)
+                #         desempaquetado fallido por columnas insuficientes
+                print(f"  [ERROR ValueError] Linea {numero_linea} "
+                      f"({linea.strip()}) -> {error}")
+ 
+            except TypeError as error:
+                # Atrapa: si se pasa un tipo de dato inesperado al constructor
+                print(f"  [ERROR TypeError] Linea {numero_linea} "
+                      f"({linea.strip()}) -> {error}")
+ 
     return transacciones
-
-
-# 5) Funcion principal
+ 
+ 
+# ---------------------------------------------------------------
+# 5) FUNCION PRINCIPAL
+# ---------------------------------------------------------------
+ 
 def ejecutar_sistema():
-    transacciones = leer_transacciones("transacciones.txt")
-
-    print("\n--- Transacciones cargadas ---")
+    print("Leyendo transacciones_corruptas.txt...\n")
+    transacciones = leer_transacciones("transacciones_corruptas.txt")
+ 
+    print("\n--- Transacciones validas cargadas ---")
     for t in transacciones:
-        # POLIMORFISMO: la misma llamada, distinto resultado segun el tipo
         print(t.obtener_informacion(), "-> impacto:", t.calcular_impacto())
-
-
-# Iniciar el programa SOLO cuando se ejecuta este archivo directamente.
-# Asi, otros archivos (como la migracion a la base de datos) pueden IMPORTAR
-# las clases y funciones sin que se ejecute toda la demo.
+ 
+    print(f"\nTotal transacciones validas: {len(transacciones)}")
+ 
+ 
 if __name__ == "__main__":
     ejecutar_sistema()
+ 

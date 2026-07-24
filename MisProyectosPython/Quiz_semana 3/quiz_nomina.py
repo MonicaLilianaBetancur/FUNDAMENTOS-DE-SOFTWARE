@@ -109,32 +109,25 @@ def leer_empleados_excel(nombre_archivo):
             print(f"  [Aviso] Se ignoro {nombre}: {error}")
  
     return empleados
- 
- 
-# ---------------------------------------------------------------
-# 5) MI FUNCION PROPIA: empleado mejor pagado
-# ---------------------------------------------------------------
- 
-def mi_funcion(empleados):
-    """Recorre la lista y devuelve el empleado con el mayor pago calculado.
- 
-    Compara el resultado de calcular_pago() de cada empleado y retorna
-    el objeto con el valor mas alto. Si la lista esta vacia, retorna None.
-    """
-    if len(empleados) == 0:
-        return None
- 
-    mejor = empleados[0]
-    for empleado in empleados:
-        if empleado.calcular_pago() > mejor.calcular_pago():
-            mejor = empleado
-    return mejor
- 
- 
-# ---------------------------------------------------------------
-# 6) FUNCION PRINCIPAL
-# ---------------------------------------------------------------
- 
+
+
+# =====================================================================
+# 5) RETO EXTRA: ¡CREA TU PROPIA FUNCION!
+#    Inventa una funcion util que trabaje con la lista de empleados.
+#    Elige UNA de estas ideas (o propon la tuya) y programala aqui abajo:
+
+#       * salario_promedio(empleados): promedio de salario_base
+#       * empleados_por_ciudad(empleados, ciudad): cuantos hay en esa ciudad
+#       * empleado_mejor_pagado(empleados): el de mayor calcular_pago()
+
+#    Documentala con un docstring y luego llamala dentro de ejecutar_quiz().
+# =====================================================================
+def salario_promedio(empleados):
+    # TODO: escribe aqui tu propia logica
+    pass
+
+
+# 6) Funcion principal
 def ejecutar_quiz():
     empleados = leer_empleados_excel("empleados.xlsx")
  
